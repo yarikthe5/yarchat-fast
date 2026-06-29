@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Yarchat Fast</title>
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #111;
+      color: white;
+    }
+    #chat {
+      height: 90vh;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    #msg {
+      width: 80%;
+      padding: 10px;
+    }
+    #send {
+      width: 18%;
+      padding: 10px;
+    }
+    .msg {
+      margin: 5px 0;
+    }
+    .system {
+      color: gray;
+    }
+  </style>
+</head>
+<body>
+
+<div id="chat"></div>
+
+<input id="msg" placeholder="message..." />
+<button id="send">Send</button>
+
+<script>
+let ws = new WebSocket("wss://" + location.host);
+
+let name = prompt("Your name:");
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: "login", name }));
+};
+
+ws.onmessage = (event) => {
+  let data = JSON.parse(event.data);
+  let chat = document.getElementById("chat");
+
+  if (data.type === "history") {
+    data.data.forEach(m => {
+      chat.innerHTML += `<div class="msg"><b>${m.user}:</b> ${m.text}</div>`;
+    });
+  }
+
+  if (data.type === "message") {
+    chat.innerHTML += `<div class="msg"><b>${data.data.user}:</b> ${data.data.text}</div>`;
+  }
+
+  if (data.type === "system") {
+    chat.innerHTML += `<div class="system">${data.text}</div>`;
+  }
+};
+
+document.getElementById("send").onclick = () => {
+  let input = document.getElementById("msg");
+  ws.send(JSON.stringify({ type: "message", text: input.value }));
+  input.value = "";
+};
+
+document.getElementById("msg").oninput = () => {
+  ws.send(JSON.stringify({ type: "typing" }));
+};
+</script>
+
+</body>
+</html>
