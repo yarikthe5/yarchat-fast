@@ -1,72 +1,46 @@
 import express from "express";
-import { WebSocketServer } from "ws";
+import http from "http";
+import { Server } from "socket.io";
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*"
+  }
+});
+
 const port = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
-const server = app.listen(port, () => {
-  console.log("Yarchat Fast V2 running on " + port);
-});
-
-const wss = new WebSocketServer({ server });
-
-let clients = {};
 let messages = [];
 
-wss.on("connection", (ws) => {
-  let user = "anon";
+io.on("connection", (socket) => {
+  console.log("user connected");
 
-  ws.on("message", (data) => {
-    const msg = JSON.parse(data.toString());
+  // send history
+  socket.emit("history", messages);
 
-    // login
-    if (msg.type === "login") {
-      user = msg.name;
-      clients[user] = ws;
+  // message receive
+  socket.on("message", (data) => {
+    const msg = {
+      user: data.user,
+      text: data.text,
+      time: Date.now()
+    };
 
-      broadcast({
-        type: "system",
-        text: `${user} joined chat`
-      });
-    }
+    messages.push(msg);
 
-    // chat message
-    if (msg.type === "message") {
-      const message = {
-        user,
-        text: msg.text,
-        time: Date.now()
-      };
-
-      messages.push(message);
-
-      broadcast({
-        type: "message",
-        data: message
-      });
-    }
-
-    // typing
-    if (msg.type === "typing") {
-      broadcast({
-        type: "typing",
-        user
-      });
-    }
+    io.emit("message", msg);
   });
 
-  ws.send(JSON.stringify({
-    type: "history",
-    data: messages
-  }));
+  // typing
+  socket.on("typing", (user) => {
+    socket.broadcast.emit("typing", user);
+  });
 });
 
-function broadcast(data) {
-  wss.clients.forEach(client => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify(data));
-    }
-  });
-}
+server.listen(port, () => {
+  console.log("Yarchat Fast v3 running on " + port);
+});
