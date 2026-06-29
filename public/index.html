@@ -4,75 +4,53 @@
   <meta charset="UTF-8">
   <title>Yarchat Fast</title>
   <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      background: #111;
-      color: white;
-    }
-    #chat {
-      height: 90vh;
-      overflow-y: auto;
-      padding: 10px;
-    }
-    #msg {
-      width: 80%;
-      padding: 10px;
-    }
-    #send {
-      width: 18%;
-      padding: 10px;
-    }
-    .msg {
-      margin: 5px 0;
-    }
-    .system {
-      color: gray;
-    }
+    body { font-family: Arial; margin:0; background:#111; color:#fff; }
+    #chat { height:90vh; overflow-y:auto; padding:10px; }
+    #bar { display:flex; }
+    input { flex:1; padding:10px; }
+    button { padding:10px; }
   </style>
 </head>
 <body>
 
 <div id="chat"></div>
 
-<input id="msg" placeholder="message..." />
-<button id="send">Send</button>
+<div id="bar">
+  <input id="msg" placeholder="message..." />
+  <button onclick="send()">Send</button>
+</div>
 
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-let ws = new WebSocket("wss://" + location.host);
+const socket = io();
 
-let name = prompt("Your name:");
-ws.onopen = () => {
-  ws.send(JSON.stringify({ type: "login", name }));
-};
+const user = prompt("Your name:");
 
-ws.onmessage = (event) => {
-  let data = JSON.parse(event.data);
-  let chat = document.getElementById("chat");
+socket.on("connect", () => {
+  console.log("connected");
+});
 
-  if (data.type === "history") {
-    data.data.forEach(m => {
-      chat.innerHTML += `<div class="msg"><b>${m.user}:</b> ${m.text}</div>`;
-    });
-  }
+socket.on("history", (msgs) => {
+  msgs.forEach(add);
+});
 
-  if (data.type === "message") {
-    chat.innerHTML += `<div class="msg"><b>${data.data.user}:</b> ${data.data.text}</div>`;
-  }
+socket.on("message", (msg) => {
+  add(msg);
+});
 
-  if (data.type === "system") {
-    chat.innerHTML += `<div class="system">${data.text}</div>`;
-  }
-};
+function add(msg){
+  document.getElementById("chat").innerHTML +=
+    `<div><b>${msg.user}:</b> ${msg.text}</div>`;
+}
 
-document.getElementById("send").onclick = () => {
-  let input = document.getElementById("msg");
-  ws.send(JSON.stringify({ type: "message", text: input.value }));
+function send(){
+  const input = document.getElementById("msg");
+  socket.emit("message", { user, text: input.value });
   input.value = "";
-};
+}
 
 document.getElementById("msg").oninput = () => {
-  ws.send(JSON.stringify({ type: "typing" }));
+  socket.emit("typing", user);
 };
 </script>
 
