@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Yarchat</title>
+<meta name="theme-color" content="#2b5278" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%232ea6ff%22/></svg>" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<!-- Екран входу -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Y</div>
+    <h1>Yarchat</h1>
+    <p class="login-sub">Швидкий месенджер, що працює навіть на слабкому інтернеті</p>
+    <input id="usernameInput" maxlength="20" placeholder="Введи своє ім'я" autocomplete="off" />
+    <div id="avatarPreview" class="avatar-preview">?</div>
+    <label class="avatar-upload-btn">
+      Завантажити аватарку
+      <input type="file" id="avatarInput" accept="image/*" hidden />
+    </label>
+    <button id="enterBtn">Увійти в чат</button>
+  </div>
+</div>
+
+<!-- Основний інтерфейс чату -->
+<div id="appScreen" class="app-screen hidden">
+  <header class="chat-header">
+    <div class="header-left">
+      <div class="room-avatar">Y</div>
+      <div>
+        <div class="room-title">Yarchat — Загальний чат</div>
+        <div class="room-sub" id="onlineCount">онлайн: 0</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="connIndicator" class="conn-indicator" title="Якість з'єднання">
+        <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span><span class="bar b4"></span>
+      </div>
+      <button id="saveModeBtn" class="icon-btn" title="Режим economії трафіку">🐢</button>
+    </div>
+  </header>
+
+  <div id="systemBanner" class="system-banner hidden"></div>
+
+  <main id="messages" class="messages"></main>
+
+  <div id="typingIndicator" class="typing-indicator hidden"></div>
+
+  <footer class="composer">
+    <button id="attachBtn" class="icon-btn" title="Прикріпити фото/відео">📎</button>
+    <input type="file" id="fileInput" accept="image/*,video/*" hidden />
+    <div class="input-wrap">
+      <input id="messageInput" placeholder="Повідомлення..." autocomplete="off" />
+    </div>
+    <button id="micBtn" class="icon-btn" title="Голосове повідомлення">🎤</button>
+    <button id="sendBtn" class="send-btn" title="Надіслати">➤</button>
+  </footer>
+
+  <div id="recordingBar" class="recording-bar hidden">
+    <span class="rec-dot"></span>
+    <span id="recTimer">0:00</span>
+    <span class="rec-hint">Запис голосового... відпусти щоб надіслати</span>
+    <button id="cancelRecBtn">✕</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/client.js"></script>
+</body>
+</html>
