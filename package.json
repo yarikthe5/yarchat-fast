@@ -1,6 +1,6 @@
 {
   "name": "yarchat-fast",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "main": "server.js",
   "type": "module",
   "scripts": {
