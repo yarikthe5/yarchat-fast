@@ -1,75 +1,262 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#08090e"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <title>Yarchat</title>
-<meta name="theme-color" content="#2b5278" />
-<link rel="manifest" href="/manifest.json" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2250%22 fill=%22%232ea6ff%22/></svg>" />
-<link rel="stylesheet" href="/style.css" />
+<link rel="manifest" href="/manifest.json"/>
+<link rel="stylesheet" href="/style.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
 
-<!-- Екран входу -->
-<div id="loginScreen" class="login-screen">
-  <div class="login-card">
-    <div class="login-logo">Y</div>
+<!-- ══ AUTH ══════════════════════════════════════════════════════════ -->
+<div id="authScreen" class="auth-screen">
+  <div class="auth-glow"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lg1" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#7c3aed"/><stop offset="1" stop-color="#ec4899"/>
+          </linearGradient>
+        </defs>
+        <circle cx="40" cy="40" r="40" fill="url(#lg1)"/>
+        <path d="M18 28Q18 20 26 20H54Q62 20 62 28V48Q62 56 54 56H44L34 66L36 56H26Q18 56 18 48Z" fill="white" fill-opacity=".15"/>
+        <path d="M18 28Q18 20 26 20H54Q62 20 62 28V48Q62 56 54 56H44L34 66L36 56H26Q18 56 18 48Z" stroke="white" stroke-width="1.5" fill="none"/>
+        <path d="M44 27L35 44H42L38 55L51 36H44Z" fill="white"/>
+      </svg>
+    </div>
     <h1>Yarchat</h1>
-    <p class="login-sub">Швидкий месенджер, що працює навіть на слабкому інтернеті</p>
-    <input id="usernameInput" maxlength="20" placeholder="Введи своє ім'я" autocomplete="off" />
-    <div id="avatarPreview" class="avatar-preview">?</div>
-    <label class="avatar-upload-btn">
-      Завантажити аватарку
-      <input type="file" id="avatarInput" accept="image/*" hidden />
-    </label>
-    <button id="enterBtn">Увійти в чат</button>
+    <p>Швидкий навіть на EDGE</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Увійти</button>
+      <button class="auth-tab" data-tab="register">Реєстрація</button>
+    </div>
+
+    <div id="tabLogin" class="auth-form">
+      <input id="loginUsername" placeholder="Нікнейм" autocomplete="username"/>
+      <input id="loginPassword" type="password" placeholder="Пароль" autocomplete="current-password"/>
+      <button id="loginBtn" class="btn-primary">Увійти</button>
+      <div id="loginError" class="auth-error"></div>
+    </div>
+
+    <div id="tabRegister" class="auth-form hidden">
+      <input id="regUsername" placeholder="Нікнейм (a–z, 0–9, _)" autocomplete="username"/>
+      <input id="regDisplayName" placeholder="Ім'я для відображення"/>
+      <input id="regPassword" type="password" placeholder="Пароль (мін. 4 символи)" autocomplete="new-password"/>
+      <button id="registerBtn" class="btn-primary">Створити акаунт</button>
+      <div id="regError" class="auth-error"></div>
+    </div>
   </div>
 </div>
 
-<!-- Основний інтерфейс чату -->
-<div id="appScreen" class="app-screen hidden">
-  <header class="chat-header">
-    <div class="header-left">
-      <div class="room-avatar">Y</div>
-      <div>
-        <div class="room-title">Yarchat — Загальний чат</div>
-        <div class="room-sub" id="onlineCount">онлайн: 0</div>
+<!-- ══ APP ════════════════════════════════════════════════════════════ -->
+<div id="appScreen" class="app hidden">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-logo">
+        <svg viewBox="0 0 40 40" fill="none"><defs><linearGradient id="sl" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs><circle cx="20" cy="20" r="20" fill="url(#sl)"/><path d="M22 10L16 22H21L19 30L27 18H22Z" fill="white"/></svg>
+        <span>Yarchat</span>
+      </div>
+      <div class="sidebar-actions">
+        <button id="newChatBtn" class="icon-btn" title="Новий чат">✏️</button>
+        <button id="profileBtn" class="icon-btn" title="Профіль">👤</button>
       </div>
     </div>
-    <div class="header-right">
-      <div id="connIndicator" class="conn-indicator" title="Якість з'єднання">
+
+    <div class="search-wrap">
+      <input id="searchInput" placeholder="🔍  Пошук чатів або людей..." autocomplete="off"/>
+    </div>
+
+    <div id="chatList" class="chat-list"></div>
+
+    <div class="sidebar-me" id="sidebarMe">
+      <div class="me-avatar" id="meAvatar"></div>
+      <div class="me-info">
+        <div class="me-name" id="meName">—</div>
+        <div class="me-username" id="meUsername"></div>
+      </div>
+      <div id="connIndicator" class="conn-indicator" title="Якість зв'язку">
         <span class="bar b1"></span><span class="bar b2"></span><span class="bar b3"></span><span class="bar b4"></span>
       </div>
-      <button id="saveModeBtn" class="icon-btn" title="Режим economії трафіку">🐢</button>
     </div>
-  </header>
+  </aside>
 
-  <div id="systemBanner" class="system-banner hidden"></div>
-
-  <main id="messages" class="messages"></main>
-
-  <div id="typingIndicator" class="typing-indicator hidden"></div>
-
-  <footer class="composer">
-    <button id="attachBtn" class="icon-btn" title="Прикріпити фото/відео">📎</button>
-    <input type="file" id="fileInput" accept="image/*,video/*" hidden />
-    <div class="input-wrap">
-      <input id="messageInput" placeholder="Повідомлення..." autocomplete="off" />
+  <!-- Main -->
+  <main class="main" id="main">
+    <!-- Empty state -->
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon">💬</div>
+      <h2>Вибери чат</h2>
+      <p>або почни нову розмову</p>
     </div>
-    <button id="micBtn" class="icon-btn" title="Голосове повідомлення">🎤</button>
-    <button id="sendBtn" class="send-btn" title="Надіслати">➤</button>
-  </footer>
 
-  <div id="recordingBar" class="recording-bar hidden">
-    <span class="rec-dot"></span>
-    <span id="recTimer">0:00</span>
-    <span class="rec-hint">Запис голосового... відпусти щоб надіслати</span>
-    <button id="cancelRecBtn">✕</button>
+    <!-- Chat view -->
+    <div id="chatView" class="chat-view hidden">
+      <header class="chat-header">
+        <button class="back-btn icon-btn" id="backBtn">‹</button>
+        <div class="chat-header-avatar" id="chatHeaderAvatar"></div>
+        <div class="chat-header-info">
+          <div class="chat-header-name" id="chatHeaderName"></div>
+          <div class="chat-header-sub" id="chatHeaderSub"></div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="icon-btn" id="mapBtn" title="Карта">🗺️</button>
+          <button class="icon-btn save-mode-btn" id="saveModeBtn" title="Режим економії трафіку">🐢</button>
+        </div>
+      </header>
+
+      <div id="messages" class="messages"></div>
+      <div id="loadMoreWrap" class="load-more-wrap hidden"><button id="loadMoreBtn">↑ Завантажити більше</button></div>
+
+      <div id="replyPreview" class="reply-preview hidden">
+        <div class="reply-bar"></div>
+        <div class="reply-body">
+          <div class="reply-name" id="replyName"></div>
+          <div class="reply-text" id="replyText"></div>
+        </div>
+        <button id="replyClose" class="icon-btn">✕</button>
+      </div>
+
+      <div id="typingBar" class="typing-bar hidden"></div>
+
+      <footer class="composer">
+        <button class="icon-btn" id="attachBtn" title="Прикріпити">📎</button>
+        <input type="file" id="fileInput" hidden multiple/>
+        <button class="icon-btn" id="stickerBtn" title="Стікери">🧡</button>
+        <div class="input-wrap">
+          <div id="msgInput" class="msg-input" contenteditable="true" data-placeholder="Повідомлення..."></div>
+        </div>
+        <button class="icon-btn" id="micBtn" title="Голосове">🎤</button>
+        <button class="send-btn" id="sendBtn">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </footer>
+
+      <div id="recordingBar" class="recording-bar hidden">
+        <span class="rec-dot"></span>
+        <span id="recTimer">0:00</span>
+        <span class="rec-hint">Відпусти — надіслати, ✕ — скасувати</span>
+        <button id="cancelRecBtn" class="icon-btn">✕</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ══ MODALS ══════════════════════════════════════════════════════ -->
+
+<!-- Profile modal -->
+<div id="profileModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Профіль</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar-preview" id="profileAvatarPreview"></div>
+      <label class="btn-ghost">Змінити фото
+        <input type="file" id="profileAvatarInput" accept="image/*" hidden/>
+      </label>
+    </div>
+    <input id="profileDisplayName" placeholder="Ім'я"/>
+    <input id="profileBio" placeholder="Про себе..."/>
+    <div class="profile-username" id="profileUsernameDisplay"></div>
+    <button id="saveProfileBtn" class="btn-primary">Зберегти</button>
+    <div class="divider"></div>
+    <button id="logoutBtn" class="btn-danger">Вийти з акаунту</button>
   </div>
 </div>
 
+<!-- New chat modal -->
+<div id="newChatModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Новий чат</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <input id="userSearchInput" placeholder="🔍 Пошук за нікнеймом..."/>
+    <div id="userSearchResults" class="user-search-results"></div>
+  </div>
+</div>
+
+<!-- Sticker modal -->
+<div id="stickerModal" class="modal hidden">
+  <div class="modal-card sticker-modal-card">
+    <div class="modal-header">
+      <h3>Стікери</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div id="stickerGrid" class="sticker-grid"></div>
+    <div class="divider"></div>
+    <div class="sticker-upload">
+      <p>Створи свій стікер</p>
+      <input id="stickerName" placeholder="Назва стікера"/>
+      <label class="btn-ghost">Вибрати зображення
+        <input type="file" id="stickerImageInput" accept="image/*" hidden/>
+      </label>
+      <div id="stickerPreview" class="sticker-preview"></div>
+      <button id="addStickerBtn" class="btn-primary">Додати стікер</button>
+    </div>
+  </div>
+</div>
+
+<!-- Map modal -->
+<div id="mapModal" class="modal hidden">
+  <div class="modal-card map-modal-card">
+    <div class="modal-header">
+      <h3>🗺️ Карта зустрічей</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="map-toolbar">
+      <button class="map-tool-btn active" id="mapModePan">👆 Огляд</button>
+      <button class="map-tool-btn" id="mapModePin">📍 Мітка</button>
+      <button class="map-tool-btn" id="mapModeDraw">✏️ Малювати</button>
+      <div class="map-color-pick">
+        <input type="color" id="mapColor" value="#8b5cf6" title="Колір"/>
+      </div>
+      <button class="map-tool-btn danger" id="mapClearDrawings">🗑 Очистити</button>
+    </div>
+    <div id="leafletMap" class="leaflet-map"></div>
+
+    <!-- Pin form -->
+    <div id="pinForm" class="pin-form hidden">
+      <h4>Нова мітка</h4>
+      <input id="pinTitle" placeholder="Назва (наприклад: Зустріч у парку)"/>
+      <input id="pinDesc" placeholder="Опис"/>
+      <input id="pinTime" type="datetime-local" title="Час зустрічі"/>
+      <div class="pin-form-btns">
+        <button id="pinSaveBtn" class="btn-primary">Поставити</button>
+        <button id="pinCancelBtn" class="btn-ghost">Скасувати</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reaction picker -->
+<div id="reactionPicker" class="reaction-picker hidden">
+  <div class="reaction-picker-inner">
+    <span class="emoji-opt" data-e="❤️">❤️</span>
+    <span class="emoji-opt" data-e="😂">😂</span>
+    <span class="emoji-opt" data-e="🔥">🔥</span>
+    <span class="emoji-opt" data-e="👍">👍</span>
+    <span class="emoji-opt" data-e="😮">😮</span>
+    <span class="emoji-opt" data-e="😢">😢</span>
+    <span class="emoji-opt" data-e="🎉">🎉</span>
+    <span class="emoji-opt" data-e="💯">💯</span>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/client.js"></script>
 </body>
 </html>
